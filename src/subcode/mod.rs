@@ -53,6 +53,18 @@ impl Sector {
             codes: codes,
         })
     }
+
+    /// Checks whether a subcode contains any non-basic subcodes -
+    /// that is, any subcodes defined outside the CD-DA or CD-ROM
+    /// specification. This method returns true if the R through V
+    /// subcodes are empty, and false if they contain data.
+    pub fn contains_basic_data_only(&self) -> bool {
+        self.codes.iter().filter(|code| match code.channel {
+                      SubcodeType::P | SubcodeType::Q => false,
+                      _ => true,
+                  })
+                  .all(|code| code.is_empty())
+    }
 }
 
 #[derive(Debug)]
