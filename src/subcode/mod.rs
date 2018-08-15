@@ -105,3 +105,50 @@ impl Subcode {
         self.data.iter().all(|byte| byte == &0)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use subcode;
+
+    #[test]
+    fn test_empty_subcode() {
+        let subcode = subcode::Subcode {
+            channel: subcode::SubcodeType::P,
+            data: vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        };
+        assert!(subcode.is_empty());
+    }
+
+    #[test]
+    fn test_non_empty_subcode() {
+        let subcode = subcode::Subcode {
+            channel: subcode::SubcodeType::P,
+            data: vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        };
+        assert!(!subcode.is_empty());
+    }
+
+    #[test]
+    fn test_basic_data_only() {
+        let p = vec![1; 12];
+        let q = vec![1; 12];
+        let rest = vec![0; 72];
+        let mut data = vec![];
+        data.extend_from_slice(&p);
+        data.extend_from_slice(&q);
+        data.extend_from_slice(&rest);
+        assert_eq!(96, data.len());
+
+        let sector = subcode::Sector::parse(data).unwrap();
+        assert!(sector.contains_basic_data_only());
+    }
+
+    #[test]
+    fn test_contains_non_basic_data() {
+        let data = vec![1; 96];
+        assert_eq!(96, data.len());
+
+        let sector = subcode::Sector::parse(data).unwrap();
+        assert!(!sector.contains_basic_data_only());
+    }
+}
