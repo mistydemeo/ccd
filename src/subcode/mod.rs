@@ -86,6 +86,27 @@ impl Sector {
                   })
                   .all(|code| code.is_empty())
     }
+
+    /// Returns `Vec<SubcodeType>` indicating every channel for which
+    /// this subcode contains data.
+    /// Given data from a standard CD-ROM disc image, this will typically
+    /// return a `Vec` with `P` and `Q`, but for discs containing extended
+    /// data this will contain more.
+    pub fn contains_data_in_channels(&self) -> Vec<SubcodeType> {
+        let mut identities = vec![];
+
+        for (index, code) in self.codes.iter().enumerate() {
+            if code.is_empty() {
+                continue
+            }
+            // We unwrap here because at the time this has been called,
+            // we've validated that this data can only contain
+            // precisely 8 channels. The error condition is unreachable.
+            identities.push(SubcodeType::from_index(index).unwrap());
+        }
+
+        identities
+    }
 }
 
 #[derive(Debug)]
@@ -239,5 +260,29 @@ mod tests {
         assert!(subcode_data_result.is_ok());
         let subcode_data = subcode_data_result.unwrap();
         assert!(!subcode_data.contains_basic_data_only());
+    }
+
+    #[test]
+    fn test_identifying_fields_from_a_basic_data_sector() {
+        let sector1_p = vec![1; 12];
+        let sector1_q = vec![1; 12];
+        let sector1_rest = vec![0; 72];
+        let mut data = vec![];
+        data.extend_from_slice(&sector1_p);
+        data.extend_from_slice(&sector1_q);
+        data.extend_from_slice(&sector1_rest);
+
+        let sector = subcode::Sector::parse(data).unwrap();
+        assert!(sector.contains_basic_data_only());
+        assert_eq!(2, sector.contains_data_in_channels().len());
+    }
+
+    #[test]
+    fn test_identifying_fields_from_a_full_sector() {
+        let data = vec![1; 96];
+
+        let sector = subcode::Sector::parse(data).unwrap();
+        assert!(!sector.contains_basic_data_only());
+        assert_eq!(8, sector.contains_data_in_channels().len());
     }
 }
