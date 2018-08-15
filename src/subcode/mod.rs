@@ -22,7 +22,12 @@ pub enum InvalidSectorError {
     #[fail(display = "invalid sector size; attempted to process subcode {}", index)]
     InvalidSubcodeIndex {
         index: usize,
-    }
+    },
+
+    #[fail(display = "invalid sector size; must be exactly 96 bytes, was {}", length)]
+    InvalidSectorLength {
+        length: usize,
+    },
 }
 
 pub struct Sector {
@@ -34,6 +39,11 @@ impl Sector {
     /// contains 8 12-byte `Subcode`s.
     pub fn parse(data: Vec<u8>) -> Result<Sector, InvalidSectorError> {
         let mut codes = vec![];
+
+        // Each channel is 12 bytes, and there must be exactly 8 channels of data
+        if data.len() != 96 {
+            return Err(InvalidSectorError::InvalidSectorLength { length: data.len() });
+        }
 
         for (i, data) in data.as_slice().chunks(12).enumerate() {
             let code;
@@ -109,6 +119,12 @@ impl Subcode {
 #[cfg(test)]
 mod tests {
     use subcode;
+
+    #[test]
+    fn test_invalid_sector_length() {
+        let data = vec![];
+        assert!(subcode::Sector::parse(data).is_err());
+    }
 
     #[test]
     fn test_empty_subcode() {
