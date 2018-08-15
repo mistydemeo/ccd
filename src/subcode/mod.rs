@@ -1,24 +1,10 @@
-use failure::Error;
-
-pub struct SubcodeData {
-    pub sectors: Vec<Sector>,
-}
-
-impl SubcodeData {
-    pub fn parse(data: Vec<u8>) -> Result<SubcodeData, Error> {
-        let mut sectors = vec![];
-        for sector in data.as_slice().chunks(96) {
-            sectors.push(Sector::parse(sector.to_vec())?);
-        }
-
-        Ok(SubcodeData {
-            sectors: sectors,
-        })
-    }
-}
-
 #[derive(Debug, Fail)]
-pub enum InvalidSectorError {
+pub enum InvalidDataError {
+    #[fail(display = "invalid data size; must be a multiple of 96 bytes, was {}", length)]
+    InvalidSubcodeDataLength {
+        length: usize,
+    },
+
     #[fail(display = "invalid sector size; attempted to process subcode {}", index)]
     InvalidSubcodeIndex {
         index: usize,
@@ -30,6 +16,27 @@ pub enum InvalidSectorError {
     },
 }
 
+pub struct SubcodeData {
+    pub sectors: Vec<Sector>,
+}
+
+impl SubcodeData {
+    pub fn parse(data: Vec<u8>) -> Result<SubcodeData, InvalidDataError> {
+        if data.len() % 96 != 0 {
+            return Err(InvalidDataError::InvalidSubcodeDataLength { length: data.len() });
+        }
+
+        let mut sectors = vec![];
+        for sector in data.as_slice().chunks(96) {
+            sectors.push(Sector::parse(sector.to_vec())?);
+        }
+
+        Ok(SubcodeData {
+            sectors: sectors,
+        })
+    }
+}
+
 pub struct Sector {
     pub codes: Vec<Subcode>,
 }
@@ -37,19 +44,19 @@ pub struct Sector {
 impl Sector {
     /// Parses a 96-byte `Vec` and returns a `Sector` whose data
     /// contains 8 12-byte `Subcode`s.
-    pub fn parse(data: Vec<u8>) -> Result<Sector, InvalidSectorError> {
+    pub fn parse(data: Vec<u8>) -> Result<Sector, InvalidDataError> {
         let mut codes = vec![];
 
         // Each channel is 12 bytes, and there must be exactly 8 channels of data
         if data.len() != 96 {
-            return Err(InvalidSectorError::InvalidSectorLength { length: data.len() });
+            return Err(InvalidDataError::InvalidSectorLength { length: data.len() });
         }
 
         for (i, data) in data.as_slice().chunks(12).enumerate() {
             let code;
             match SubcodeType::from_index(i) {
                 Some(c) => code = c,
-                None    => return Err(InvalidSectorError::InvalidSubcodeIndex { index: i }),
+                None    => return Err(InvalidDataError::InvalidSubcodeIndex { index: i }),
             }
             let mut data_vec = vec![];
             data_vec.extend_from_slice(data);
@@ -119,6 +126,15 @@ impl Subcode {
 #[cfg(test)]
 mod tests {
     use subcode;
+
+    #[test]
+    fn test_parsing_data_size() {
+        let data1 = vec![0; 5];
+        assert!(subcode::SubcodeData::parse(data1).is_err());
+
+        let data2 = vec![0; 96];
+        assert!(!subcode::SubcodeData::parse(data2).is_err());
+    }
 
     #[test]
     fn test_invalid_sector_length() {
