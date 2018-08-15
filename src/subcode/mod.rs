@@ -35,6 +35,10 @@ impl SubcodeData {
             sectors: sectors,
         })
     }
+
+    pub fn contains_basic_data_only(&self) -> bool {
+        self.sectors.iter().all(|sector| sector.contains_basic_data_only())
+    }
 }
 
 pub struct Sector {
@@ -182,5 +186,58 @@ mod tests {
 
         let sector = subcode::Sector::parse(data).unwrap();
         assert!(!sector.contains_basic_data_only());
+    }
+
+    #[test]
+    fn test_basic_data_for_a_full_disc() {
+        // Disc containing two sectors, both containing only basic data
+        let sector1_p = vec![1; 12];
+        let sector1_q = vec![1; 12];
+        let sector1_rest = vec![0; 72];
+        let sector2_p = vec![1; 12];
+        let sector2_q = vec![1; 12];
+        let sector2_rest = vec![0; 72];
+        let mut data = vec![];
+        data.extend_from_slice(&sector1_p);
+        data.extend_from_slice(&sector1_q);
+        data.extend_from_slice(&sector1_rest);
+        data.extend_from_slice(&sector2_p);
+        data.extend_from_slice(&sector2_q);
+        data.extend_from_slice(&sector2_rest);
+        assert_eq!(192, data.len());
+
+        let subcode_data_result = subcode::SubcodeData::parse(data);
+        assert!(subcode_data_result.is_ok());
+        let subcode_data = subcode_data_result.unwrap();
+        assert!(subcode_data.contains_basic_data_only());
+    }
+
+    #[test]
+    fn test_non_basic_data_for_a_full_disc() {
+        // Disc containing two sectors, both containing non-basic data
+        let data = vec![1; 960];
+        let subcode_data_result = subcode::SubcodeData::parse(data);
+        assert!(subcode_data_result.is_ok());
+        let subcode_data = subcode_data_result.unwrap();
+        assert!(!subcode_data.contains_basic_data_only());
+    }
+
+    #[test]
+    fn test_mixed_sector_modes_reports_correctly() {
+        // Disc containing two sectors, one basic and one non-basic
+        let sector1_p = vec![1; 12];
+        let sector1_q = vec![1; 12];
+        let sector1_rest = vec![0; 72];
+        let sector2 = vec![1; 96];
+        let mut data = vec![];
+        data.extend_from_slice(&sector1_p);
+        data.extend_from_slice(&sector1_q);
+        data.extend_from_slice(&sector1_rest);
+        data.extend_from_slice(&sector2);
+
+        let subcode_data_result = subcode::SubcodeData::parse(data);
+        assert!(subcode_data_result.is_ok());
+        let subcode_data = subcode_data_result.unwrap();
+        assert!(!subcode_data.contains_basic_data_only());
     }
 }
