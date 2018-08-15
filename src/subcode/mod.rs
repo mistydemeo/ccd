@@ -135,6 +135,19 @@ impl SubcodeType {
             _ => None,
         }
     }
+
+    pub fn to_string(&self) -> String {
+        match *self {
+            SubcodeType::P => String::from("P"),
+            SubcodeType::Q => String::from("Q"),
+            SubcodeType::R => String::from("R"),
+            SubcodeType::S => String::from("S"),
+            SubcodeType::T => String::from("T"),
+            SubcodeType::U => String::from("U"),
+            SubcodeType::V => String::from("V"),
+            SubcodeType::W => String::from("W"),
+        }
+    }
 }
 
 pub struct Subcode {
@@ -284,5 +297,10 @@ mod tests {
         let sector = subcode::Sector::parse(data).unwrap();
         assert!(!sector.contains_basic_data_only());
         assert_eq!(8, sector.contains_data_in_channels().len());
+    }
+
+    #[test]
+    fn test_subcode_type_to_string() {
+        assert_eq!("Q", subcode::SubcodeType::Q.to_string());
     }
 }
