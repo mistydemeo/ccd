@@ -1,19 +1,22 @@
 #[derive(Debug, Fail)]
 pub enum InvalidDataError {
-    #[fail(display = "invalid data size; must be a multiple of 96 bytes, was {}", length)]
-    InvalidSubcodeDataLength {
-        length: usize,
-    },
+    #[fail(
+        display = "invalid data size; must be a multiple of 96 bytes, was {}",
+        length
+    )]
+    InvalidSubcodeDataLength { length: usize },
 
-    #[fail(display = "invalid sector size; attempted to process subcode {}", index)]
-    InvalidSubcodeIndex {
-        index: usize,
-    },
+    #[fail(
+        display = "invalid sector size; attempted to process subcode {}",
+        index
+    )]
+    InvalidSubcodeIndex { index: usize },
 
-    #[fail(display = "invalid sector size; must be exactly 96 bytes, was {}", length)]
-    InvalidSectorLength {
-        length: usize,
-    },
+    #[fail(
+        display = "invalid sector size; must be exactly 96 bytes, was {}",
+        length
+    )]
+    InvalidSectorLength { length: usize },
 }
 
 pub struct SubcodeData {
@@ -31,13 +34,13 @@ impl SubcodeData {
             sectors.push(Sector::parse(sector.to_vec())?);
         }
 
-        Ok(SubcodeData {
-            sectors: sectors,
-        })
+        Ok(SubcodeData { sectors: sectors })
     }
 
     pub fn contains_basic_data_only(&self) -> bool {
-        self.sectors.iter().all(|sector| sector.contains_basic_data_only())
+        self.sectors
+            .iter()
+            .all(|sector| sector.contains_basic_data_only())
     }
 }
 
@@ -60,7 +63,7 @@ impl Sector {
             let code;
             match SubcodeType::from_index(i) {
                 Some(c) => code = c,
-                None    => return Err(InvalidDataError::InvalidSubcodeIndex { index: i }),
+                None => return Err(InvalidDataError::InvalidSubcodeIndex { index: i }),
             }
             let mut data_vec = vec![];
             data_vec.extend_from_slice(data);
@@ -70,9 +73,7 @@ impl Sector {
             });
         }
 
-        Ok(Sector {
-            codes: codes,
-        })
+        Ok(Sector { codes: codes })
     }
 
     /// Checks whether a subcode contains any non-basic subcodes -
@@ -80,11 +81,13 @@ impl Sector {
     /// specification. This method returns true if the R through V
     /// subcodes are empty, and false if they contain data.
     pub fn contains_basic_data_only(&self) -> bool {
-        self.codes.iter().filter(|code| match code.channel {
-                      SubcodeType::P | SubcodeType::Q => false,
-                      _ => true,
-                  })
-                  .all(|code| code.is_empty())
+        self.codes
+            .iter()
+            .filter(|code| match code.channel {
+                SubcodeType::P | SubcodeType::Q => false,
+                _ => true,
+            })
+            .all(|code| code.is_empty())
     }
 
     /// Returns `Vec<SubcodeType>` indicating every channel for which
@@ -97,7 +100,7 @@ impl Sector {
 
         for (index, code) in self.codes.iter().enumerate() {
             if code.is_empty() {
-                continue
+                continue;
             }
             // We unwrap here because at the time this has been called,
             // we've validated that this data can only contain
