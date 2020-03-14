@@ -163,7 +163,7 @@ impl Subcode {
 
 #[cfg(test)]
 mod tests {
-    use subcode;
+    use crate::subcode;
 
     #[test]
     fn test_parsing_data_size() {
